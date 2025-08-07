@@ -20,12 +20,15 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ('id', 'username', 'email', 'role')
 
 class ProjectSerializer(serializers.ModelSerializer):
-    manager = UserSerializer(read_only=True)
+    manager = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(role='manager')
+    )
     created_by = UserSerializer(read_only=True)
 
     class Meta:
         model = Project
         fields = '__all__'
+
 
 class TeamMemberSerializer(serializers.ModelSerializer):
     member = UserSerializer(read_only=True)

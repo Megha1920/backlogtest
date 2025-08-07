@@ -1,8 +1,10 @@
 from rest_framework import viewsets
 from .models import Project, TeamMember, Task, TaskStatusHistory
-from .serializers import ProjectSerializer, TeamMemberSerializer, TaskSerializer, TaskStatusHistorySerializer
+from .serializers import ProjectSerializer, TeamMemberSerializer, TaskSerializer, TaskStatusHistorySerializer,UserSerializer
 from .permissions import IsAdmin, IsManager, IsTeamMember, IsManagerOrAdmin
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+from rest_framework.response import Response
 
 class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all()
@@ -46,3 +48,23 @@ from backlog.serializers import CustomRegisterSerializer
 
 class CustomRegisterView(RegisterView):
     serializer_class = CustomRegisterSerializer
+
+
+from django.contrib.auth import get_user_model
+User = get_user_model()  # ✅ Add this line
+
+class ManagerListView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        managers = User.objects.filter(role='manager')  # now User is defined
+        serializer = UserSerializer(managers, many=True)
+        return Response(serializer.data)
+
+
+class CurrentUserView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data)
