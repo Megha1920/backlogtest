@@ -8,15 +8,15 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         apps = SocialApp.objects.filter(provider=provider, sites=site)
         if apps.count() == 1:
             return apps.first()
-        elif apps.count() == 0:
-            raise SocialApp.DoesNotExist(
-                f"No SocialApp for provider '{provider}' configured for site '{site.domain}'"
-            )
-        else:
-            # DEBUGGING: Print them out before raising
-            print("Multiple apps found:")
-            for app in apps:
-                print(f"App ID: {app.id}, Name: {app.name}, Client ID: {app.client_id}")
-            raise SocialApp.MultipleObjectsReturned(
-                f"Multiple SocialApps for provider '{provider}' found for site '{site.domain}'"
-            )
+        if apps.count() == 0:
+            raise SocialApp.DoesNotExist(f"No SocialApp for provider '{provider}' configured for site '{site.domain}'")
+        for app in apps:
+            print(f"Multiple SocialApps found: ID={app.id}, Name={app.name}, ClientID={app.client_id}")
+        raise SocialApp.MultipleObjectsReturned(f"Multiple SocialApps for provider '{provider}' found for site '{site.domain}'")
+
+    def save_user(self, request, sociallogin, form=None):
+        user = super().save_user(request, sociallogin, form)
+        if not user.role:
+            user.role = 'admin'  # or 'manager' based on your logic
+            user.save()
+        return user

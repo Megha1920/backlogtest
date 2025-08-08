@@ -7,12 +7,17 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 
 class ProjectViewSet(viewsets.ModelViewSet):
-    queryset = Project.objects.all()
+    queryset = Project.objects.all()  # required for router registration
     serializer_class = ProjectSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
 
+    def get_queryset(self):
+        return Project.objects.filter(created_by=self.request.user)
+
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
+
+
 
 class TeamMemberViewSet(viewsets.ModelViewSet):
     queryset = TeamMember.objects.all()

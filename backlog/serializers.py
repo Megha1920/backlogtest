@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import User, Project, TeamMember, Task, TaskStatusHistory
+from django.contrib.auth import authenticate
 
 from dj_rest_auth.registration.serializers import RegisterSerializer
 
@@ -20,14 +21,18 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ('id', 'username', 'email', 'role')
 
 class ProjectSerializer(serializers.ModelSerializer):
-    manager = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.filter(role='manager')
+    manager = UserSerializer(read_only=True)
+    manager_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(role='manager'),
+        write_only=True,
+        source='manager'
     )
     created_by = UserSerializer(read_only=True)
 
     class Meta:
         model = Project
-        fields = '__all__'
+        fields = ['id', 'name', 'description', 'manager', 'manager_id', 'created_by']
+
 
 
 class TeamMemberSerializer(serializers.ModelSerializer):

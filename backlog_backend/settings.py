@@ -179,6 +179,18 @@ ACCOUNT_SIGNUP_FIELDS = {
     # Add 'username' here only if you want to use it
 }
 
+
+
+ACCOUNT_LOGIN_METHOD = 'email'  # ✅ Old style still needed for proper fallback
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USERNAME_REQUIRED = False  # ✅ Disables username system
+ACCOUNT_AUTHENTICATION_METHOD = 'email'  # ✅ Still required for dj-rest-auth
+ACCOUNT_EMAIL_VERIFICATION = 'none'  # Disable email verification for now (dev)
+ACCOUNT_LOGOUT_ON_GET = True
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
+ACCOUNT_LOGOUT_REDIRECT_URL = '/'
+
 ACCOUNT_LOGOUT_ON_GET = True
 
 LOGIN_REDIRECT_URL = '/'
