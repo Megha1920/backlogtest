@@ -28,19 +28,29 @@ class ProjectSerializer(serializers.ModelSerializer):
         source='manager'
     )
     created_by = UserSerializer(read_only=True)
+    team_members = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
-        fields = ['id', 'name', 'description', 'manager', 'manager_id', 'created_by']
+        fields = ['id', 'name', 'description', 'manager', 'manager_id', 'created_by', 'team_members']
 
+    def get_team_members(self, obj):
+        members = TeamMember.objects.filter(project=obj)
+        return UserSerializer([tm.member for tm in members], many=True).data
 
 
 class TeamMemberSerializer(serializers.ModelSerializer):
     member = UserSerializer(read_only=True)
+    member_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(role='member'),
+        write_only=True,
+        source='member'
+    )
 
     class Meta:
         model = TeamMember
-        fields = '__all__'
+        fields = ['id', 'project', 'member', 'member_id']
+
 
 class TaskSerializer(serializers.ModelSerializer):
     assigned_to = UserSerializer(read_only=True)

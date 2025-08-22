@@ -5,7 +5,7 @@ from .permissions import IsAdmin, IsManager, IsTeamMember, IsManagerOrAdmin
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
-
+from django.core.exceptions import PermissionDenied
 class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all()  # required for router registration
     serializer_class = ProjectSerializer
@@ -22,7 +22,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
 class TeamMemberViewSet(viewsets.ModelViewSet):
     queryset = TeamMember.objects.all()
     serializer_class = TeamMemberSerializer
-    permission_classes = [IsAuthenticated, IsManager]
+    permission_classes = [IsAuthenticated, IsManagerOrAdmin]
 
 class TaskViewSet(viewsets.ModelViewSet):
     queryset = Task.objects.all()  # ← ADD THIS LINE
@@ -37,8 +37,14 @@ class TaskViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         project_id = self.kwargs.get('project_pk')
-        project = Project.objects.get(id=project_id) if project_id else None
+        project = Project.objects.get(id=project_id)
+        
+        # Ensure only the project's manager can assign tasks
+        if self.request.user.role != 'manager' or project.manager != self.request.user:
+            raise PermissionDenied("You are not allowed to assign tasks for this project.")
+        
         serializer.save(created_by=self.request.user, project=project)
+
 
 
 
@@ -73,3 +79,12 @@ class CurrentUserView(APIView):
     def get(self, request):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
+    
+
+class UserViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only endpoint for listing all users.
+    """
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
