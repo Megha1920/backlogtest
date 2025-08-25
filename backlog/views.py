@@ -6,15 +6,24 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.core.exceptions import PermissionDenied
+
 class ProjectViewSet(viewsets.ModelViewSet):
-    queryset = Project.objects.all()  # required for router registration
     serializer_class = ProjectSerializer
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated]  # allow all logged-in users
 
     def get_queryset(self):
-        return Project.objects.filter(created_by=self.request.user)
+        user = self.request.user
+        if user.role == 'admin':
+            return Project.objects.all()
+        elif user.role == 'manager':
+            return Project.objects.filter(manager=user)
+        elif user.role == 'member':
+            return Project.objects.filter(team_members__member=user)
+        return Project.objects.none()
 
     def perform_create(self, serializer):
+        if self.request.user.role != 'admin':  # ✅ only admins can create
+            raise PermissionDenied("Only admins can create projects.")
         serializer.save(created_by=self.request.user)
 
 
@@ -22,7 +31,33 @@ class ProjectViewSet(viewsets.ModelViewSet):
 class TeamMemberViewSet(viewsets.ModelViewSet):
     queryset = TeamMember.objects.all()
     serializer_class = TeamMemberSerializer
-    permission_classes = [IsAuthenticated, IsManagerOrAdmin]
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 'admin':
+            return TeamMember.objects.all()
+        elif user.role == 'manager':
+            # Managers can only see team members for their own projects
+            return TeamMember.objects.filter(project__manager=user)
+        elif user.role == 'member':
+            # Members can only see themselves
+            return TeamMember.objects.filter(member=user)
+        return TeamMember.objects.none()
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        project = serializer.validated_data['project']
+
+        if user.role == 'admin':
+            serializer.save()
+        elif user.role == 'manager':
+            # Managers can only add members to projects they manage
+            if project.manager != user:
+                raise PermissionDenied("You cannot assign members to projects you don’t manage.")
+            serializer.save()
+        else:
+            raise PermissionDenied("You don’t have permission to assign team members.")
 
 class TaskViewSet(viewsets.ModelViewSet):
     queryset = Task.objects.all()  # ← ADD THIS LINE

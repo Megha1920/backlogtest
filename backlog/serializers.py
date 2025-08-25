@@ -53,12 +53,29 @@ class TeamMemberSerializer(serializers.ModelSerializer):
 
 
 class TaskSerializer(serializers.ModelSerializer):
+    assigned_to_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(role="member"),
+        write_only=True,
+        source="assigned_to"
+    )
+    project_id = serializers.PrimaryKeyRelatedField(
+        queryset=Project.objects.all(),
+        write_only=True,
+        source="project"
+    )
+
     assigned_to = UserSerializer(read_only=True)
     created_by = UserSerializer(read_only=True)
+    project = ProjectSerializer(read_only=True)
 
     class Meta:
         model = Task
-        fields = '__all__'
+        fields = ["id", "title", "description", "status",
+                  "assigned_to", "assigned_to_id",
+                  "project", "project_id",
+                  "created_by", "created_at", "updated_at"]
+
+
 
 class TaskStatusHistorySerializer(serializers.ModelSerializer):
     changed_by = UserSerializer(read_only=True)
