@@ -60,28 +60,52 @@ class TeamMemberViewSet(viewsets.ModelViewSet):
             raise PermissionDenied("You don’t have permission to assign team members.")
 
 class TaskViewSet(viewsets.ModelViewSet):
-    queryset = Task.objects.all()  # ← ADD THIS LINE
     serializer_class = TaskSerializer
-    permission_classes = [IsAuthenticated, IsManagerOrAdmin]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        project_id = self.kwargs.get('project_pk')
+        user = self.request.user
+        project_id = self.kwargs.get("project_pk")
+
+        queryset = Task.objects.all()
+
         if project_id:
-            return Task.objects.filter(project_id=project_id)
-        return Task.objects.all()
+            queryset = queryset.filter(project_id=project_id)
+
+        # Restrict members only for the LIST view, not for retrieving a single task
+        if hasattr(user, "role") and user.role == "member" and self.action == "list":
+            queryset = queryset.filter(assigned_to=user)
+
+        return queryset
+
+
+        return queryset
 
     def perform_create(self, serializer):
-        project_id = self.kwargs.get('project_pk')
+        project_id = self.kwargs.get("project_pk")
         project = Project.objects.get(id=project_id)
-        
+
         # Ensure only the project's manager can assign tasks
-        if self.request.user.role != 'manager' or project.manager != self.request.user:
+        if self.request.user.role != "manager" or project.manager != self.request.user:
             raise PermissionDenied("You are not allowed to assign tasks for this project.")
-        
+
         serializer.save(created_by=self.request.user, project=project)
 
+    # 🔑 Allow members to update only the status of their tasks
+    def partial_update(self, request, *args, **kwargs):
+        task = self.get_object()
+        user = request.user
 
+        if user.role == "member":
+            # Members can only update tasks assigned to them
+            if task.assigned_to != user:
+                raise PermissionDenied("You cannot update tasks not assigned to you.")
 
+            # Members can only change status
+            if "status" not in request.data or len(request.data.keys()) > 1:
+                raise PermissionDenied("You can only update the status of your tasks.")
+
+        return super().partial_update(request, *args, **kwargs)
 
 class TaskStatusHistoryViewSet(viewsets.ModelViewSet):
     queryset = TaskStatusHistory.objects.all()

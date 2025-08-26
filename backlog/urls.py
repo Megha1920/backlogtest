@@ -5,7 +5,6 @@ from .views import (
     ProjectViewSet,
     TeamMemberViewSet,
     TaskViewSet,
-    TaskStatusHistoryViewSet,
     ManagerListView,
     CurrentUserView,
     UserViewSet,
@@ -15,7 +14,7 @@ router = DefaultRouter()
 router.register('projects', ProjectViewSet, basename="project")
 router.register('team-members', TeamMemberViewSet, basename="teammember")
 router.register('tasks', TaskViewSet, basename="task")
-router.register('task-history', TaskStatusHistoryViewSet, basename="taskhistory")
+
 router.register('users', UserViewSet, basename="user")
 
 # NESTED ROUTER: /projects/:project_id/tasks/
