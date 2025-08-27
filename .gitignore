@@ -1,1 +1,7 @@
 .env
+git rm --cached -r env/
+git rm --cached -r **/__pycache__/
+git rm --cached -r **/*.pyc
+*.pyc
+*.pyo
+__pycache__/
