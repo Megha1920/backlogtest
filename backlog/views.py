@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.core.exceptions import PermissionDenied
-
+from django.db.models import Q
 class ProjectViewSet(viewsets.ModelViewSet):
     serializer_class = ProjectSerializer
     permission_classes = [IsAuthenticated]  # allow all logged-in users
@@ -14,7 +14,10 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.role == 'admin':
-            return Project.objects.all()
+            # Admin sees projects they created OR are a team member of
+            return Project.objects.filter(
+                Q(created_by=user) | Q(team_members__member=user)
+            ).distinct()
         elif user.role == 'manager':
             return Project.objects.filter(manager=user)
         elif user.role == 'member':
